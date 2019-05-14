@@ -1,13 +1,27 @@
 #include <TFmini.h>
+// #include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Odometry.h>
+
+//odom_cb
+nav_msgs::Odometry px4_odom;
+void px4_odom_cb(const nav_msgs::Odometry& msg)
+{
+  px4_odom = msg;
+}
+
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "tfmini_ros_node");
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh;
   std::string id = "TFmini";
   std::string portName;
   int baud_rate;
   benewake::TFmini *tfmini_obj;
+
+  //New
+  ros::Subscriber px4_odom_sub = nh.subscribe("pilot/local_position/odom", 100, px4_odom_cb);
+  ros::Publisher tfmini_odom_pub = nh.advertise<nav_msgs::Odometry>("tfmini_odom",10);
 
   nh.param("serial_port", portName, std::string("/dev/ttyUSB0"));
   nh.param("baud_rate", baud_rate, 115200);
@@ -32,6 +46,17 @@ int main(int argc, char **argv)
       TFmini_range.range = dist;
       TFmini_range.header.stamp = ros::Time::now();
       pub_range.publish(TFmini_range);
+
+      //New
+      nav_msgs::Odometry odom_;
+      odom_.pose = px4_odom.pose;
+      odom_.twist = px4_odom.twist;
+      // odom_.covariance = px4_odom.covariance;
+      odom_.header.frame_id = px4_odom.header.frame_id;
+      odom_.child_frame_id = px4_odom.child_frame_id;
+      odom_.header.stamp = ros::Time::now();
+      odom_.pose.pose.position.z = TFmini_range.range;
+      tfmini_odom_pub.publish(odom_);
     }
     else if(dist == -1.0)
     {
@@ -42,6 +67,8 @@ int main(int argc, char **argv)
     {
       ROS_ERROR_STREAM("Data validation error!");
     }
+
+    
   }
 
   tfmini_obj->closePort();

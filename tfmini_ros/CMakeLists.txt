@@ -7,6 +7,7 @@ project(tfmini_ros)
 find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   roscpp
+  nav_msgs
 )
 find_package(Boost REQUIRED COMPONENTS system)
 
